@@ -1,8 +1,7 @@
 {
-  "crons": [
-    {
-      "path": "/api/webhook",
-      "schedule": "*/5 * * * *"
+  "functions": {
+    "api/webhook.js": {
+      "maxDuration": 60
     }
-  ]
+  }
 }

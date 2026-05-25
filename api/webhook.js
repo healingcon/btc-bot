@@ -290,6 +290,22 @@ async function buildReport(sym){
   TFS.forEach(t=>{results[t]?.sigs?.slice(0,2).forEach(s=>{if(!allSigs.find(x=>x.name===s.name))allSigs.push({...s,tf:TF_LABELS[t]});});});
   const topSigs=allSigs.slice(0,6).map(s=>`• [${s.tf}] ${s.name}`).join('\n');
 
+  // RSI/MACD/BB 값 직접 추출 (15m 기준, 없으면 1h)
+  const refResult = results['15m'] || results['1h'] || {};
+  const rsiVal = refResult.rsi!=null ? refResult.rsi.toFixed(1) : null;
+  const rsiDesc = rsiVal ? (
+    +rsiVal>=70?'과매수(숏주의)': +rsiVal>=55?'강세권': +rsiVal<=30?'과매도(롱주의)': +rsiVal<=45?'약세권':'중립'
+  ) : null;
+  const rsiLine = rsiVal ? `\n📈 RSI(14): <b>${rsiVal}</b>  <i>${rsiDesc}</i>` : '';
+
+  // BB 값
+  const bbSig = refResult.sigs?.find(s=>s.cat==='BB'&&s.name.includes('%'));
+  const bbLine = bbSig ? `\n📉 BB: <b>${bbSig.name}</b>` : '';
+
+  // 스퀴즈
+  const squeezeSig = refResult.sigs?.find(s=>s.name?.includes('스퀴즈'));
+  const squeezeLine = squeezeSig ? `\n⚡ ${squeezeSig.name}` : '';
+
   const frLine=fundingRate!==null?`\n💸 펀딩레이트: <b>${fundingRate.toFixed(4)}%</b>${fundingRate>0.1?' 🔥롱과열':fundingRate<-0.1?' 🧊숏과열':fundingRate>0.05?' ↑롱우세':fundingRate<-0.05?' ↓숏우세':' ≈중립'}`:'';
   const lsLine=lsRatio?`\n📊 롱/숏: 🟢${lsRatio.longPct.toFixed(0)}% / 🔴${lsRatio.shortPct.toFixed(0)}%${lsRatio.longPct>80?' ⚠롱과열':lsRatio.shortPct>80?' ⚠숏과열':''}`:'';
 
@@ -304,7 +320,7 @@ async function buildReport(sym){
 ⏰ <b>타임프레임 분석</b>
 ${tfLines}
 
-📋 <b>주요 신호</b>
+📋 <b>주요 지표</b>${rsiLine}${bbLine}${squeezeLine}
 ${topSigs}
 
 ⚠️ <i>참고용 · 투자 결정은 본인 책임</i>`;
@@ -330,8 +346,9 @@ async function buildTFReport(sym){
     const isS=r.dir==='sell'&&r.score<=-20;
     const icon=isL?'🟢':isS?'🔴':'🟡';
     const dir=isL?'LONG':isS?'SHORT':'중립';
+    const rsiTxt = r.rsi!=null ? ` | RSI ${r.rsi.toFixed(1)}` : '';
     const topSig=r.sigs?.slice(0,2).map(s=>s.name).join(', ')||'—';
-    return`${icon} <b>${TF_LABELS[t]}</b> (${TF_ROLE[t]})\n   ${dir} ${Math.abs(r.score)}점\n   └ ${topSig}`;
+    return`${icon} <b>${TF_LABELS[t]}</b> (${TF_ROLE[t]})\n   ${dir} ${Math.abs(r.score)}점${rsiTxt}\n   └ ${topSig}`;
   });
 
   const frTxt=fr!==null?`펀딩: ${fr.toFixed(4)}%`:'펀딩: —';
